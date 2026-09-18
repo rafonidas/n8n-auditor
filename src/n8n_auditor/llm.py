@@ -135,16 +135,33 @@ def summarize_workflow(wf: Workflow, findings: list[Finding]) -> str:
     return text
 
 
+def _load_api_keys() -> list[str]:
+    """GEMINI_API_KEY plus any GEMINI_API_KEY_2, _3, ... found in the environment, in order."""
+    keys = []
+    primary = os.environ.get("GEMINI_API_KEY")
+    if primary:
+        keys.append(primary)
+    i = 2
+    while True:
+        extra = os.environ.get(f"GEMINI_API_KEY_{i}")
+        if not extra:
+            break
+        keys.append(extra)
+        i += 1
+    return keys
+
+
 class LLMReviewer:
     def __init__(self, max_calls: int = 20, model: str | None = None,
                  cache_dir: Path | None = None) -> None:
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
+        api_keys = _load_api_keys()
+        if not api_keys:
             raise LLMError("GEMINI_API_KEY not set")
         from google import genai  # imported here so --no-llm never needs the SDK
 
         self._genai = genai
-        self.client = genai.Client(api_key=api_key)
+        self._clients = [genai.Client(api_key=k) for k in api_keys]
+        self.client = self._clients[0]  # kept for _pick_model() and backwards compat
         self.model = model or os.environ.get("LLM_MODEL") or self._pick_model()
         self.max_calls = max_calls
         self.calls_made = 0
@@ -152,6 +169,7 @@ class LLMReviewer:
         self.output_tokens = 0
         self.cache_dir = cache_dir if cache_dir is not None else CACHE_DIR
         self.cache_hits = 0
+        self.key_rotations = 0
 
     def _pick_model(self) -> str:
         """Prefer the most capable generally-available Gemini model the key can use."""
@@ -195,19 +213,37 @@ class LLMReviewer:
         )
         delay = 2.0
         last_error: Exception | None = None
-        for _attempt in range(MAX_RETRIES):
+        client_idx = 0
+        attempts_on_client = 0
+        while True:
+            client = self._clients[client_idx]
             try:
                 self.calls_made += 1
-                resp = self.client.models.generate_content(
+                resp = client.models.generate_content(
                     model=self.model, contents=payload, config=config
                 )
             except errors.APIError as e:
                 last_error = e
-                if getattr(e, "code", None) == 429 or isinstance(e, errors.ServerError):
+                attempts_on_client += 1
+                is_rate_limited = getattr(e, "code", None) == 429 or isinstance(e, errors.ServerError)
+                if not is_rate_limited:
+                    raise LLMError(f"Gemini API error {getattr(e, 'code', '?')}: {e}") from e
+                if attempts_on_client < MAX_RETRIES:
                     time.sleep(delay)
                     delay *= 2
                     continue
-                raise LLMError(f"Gemini API error {getattr(e, 'code', '?')}: {e}") from e
+                if client_idx + 1 < len(self._clients):
+                    # This key is exhausted (quota/rate limit) after MAX_RETRIES backoffs —
+                    # move to the next GEMINI_API_KEY_N and retry the same payload from scratch.
+                    client_idx += 1
+                    attempts_on_client = 0
+                    delay = 2.0
+                    self.key_rotations += 1
+                    continue
+                raise LLMError(
+                    f"rate-limited after {MAX_RETRIES} retries on {len(self._clients)} "
+                    f"key(s): {last_error}"
+                )
 
             usage = resp.usage_metadata
             if usage:
@@ -226,7 +262,6 @@ class LLMReviewer:
             if parsed is None:
                 raise LLMError("empty or unparseable structured response")
             return parsed  # type: ignore[return-value]
-        raise LLMError(f"rate-limited after {MAX_RETRIES} retries: {last_error}")
 
     def additional_findings_as_findings(self, wf: Workflow, review: dict[str, Any]) -> list[Finding]:
         out: list[Finding] = []
@@ -255,9 +290,10 @@ class LLMReviewer:
         return 0.0
 
     def print_usage(self, console) -> None:
+        keys_note = f", key rotations={self.key_rotations}/{len(self._clients) - 1}" if len(self._clients) > 1 else ""
         console.print(
             f"[dim]LLM: model={self.model}, calls={self.calls_made}, "
             f"cache hits={self.cache_hits}, tokens in/out={self.prompt_tokens}/"
             f"{self.output_tokens}, est. paid-tier cost=${self.estimated_cost():.4f} "
-            f"(free tier: $0)[/dim]"
+            f"(free tier: $0){keys_note}[/dim]"
         )
