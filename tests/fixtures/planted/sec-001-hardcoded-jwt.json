@@ -1,0 +1,41 @@
+{
+  "name": "Invoice sync (JWT in header)",
+  "id": "wf-planted-sec001a",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    },
+    {
+      "id": "n2",
+      "name": "Fetch invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "url": "https://billing.fakevendor.io/api/invoices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmYWtlIjp0cnVlLCJzdWIiOiJkZW1vIn0.c2lnbmF0dXJlLWZha2UtMTIzNDU2Nzg5MA"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Fetch invoices", "type": "main", "index": 0 }]]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "expected": [
+    { "rule_id": "SEC-002", "node_name": "Incoming lead", "severity": "high" }
+  ]
+}

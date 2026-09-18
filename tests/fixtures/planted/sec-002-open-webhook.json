@@ -1,0 +1,34 @@
+{
+  "name": "Lead intake (open webhook)",
+  "id": "wf-planted-sec002",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-handler" },
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Incoming lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": { "path": "lead-intake", "httpMethod": "POST" }
+    },
+    {
+      "id": "n2",
+      "name": "Insert lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "operation": "insert",
+        "table": "leads",
+        "columns": "name,email"
+      }
+    }
+  ],
+  "connections": {
+    "Incoming lead": {
+      "main": [[{ "node": "Insert lead", "type": "main", "index": 0 }]]
+    }
+  }
+}
