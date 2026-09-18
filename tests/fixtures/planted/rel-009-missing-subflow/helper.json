@@ -1,0 +1,11 @@
+{
+  "name": "Notification subflow",
+  "id": "wf-planted-rel009-helper",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "When called", "type": "n8n-nodes-base.executeWorkflowTrigger", "typeVersion": 1.1, "position": [0, 0], "parameters": {} },
+    { "id": "n2", "name": "Shape payload", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0], "parameters": {} }
+  ],
+  "connections": { "When called": { "main": [[{ "node": "Shape payload", "type": "main", "index": 0 }]] } }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Error notifier",
+  "id": "wf-adv-10-err",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Error Trigger", "type": "n8n-nodes-base.errorTrigger", "typeVersion": 1, "position": [0, 0], "disabled": true, "parameters": {} },
+    { "id": "n2", "name": "Notify channel", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [200, 0], "parameters": { "operation": "post", "text": "A workflow failed" } }
+  ],
+  "connections": { "Error Trigger": { "main": [[{ "node": "Notify channel", "type": "main", "index": 0 }]] } }
+}

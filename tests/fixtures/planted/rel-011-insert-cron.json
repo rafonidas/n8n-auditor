@@ -1,0 +1,22 @@
+{
+  "name": "Metrics snapshot",
+  "id": "wf-planted-rel011",
+  "active": false,
+  "settings": { "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    {
+      "id": "n1", "name": "Every 10 minutes", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 10 }] } }
+    },
+    {
+      "id": "n2", "name": "Insert snapshot", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO metric_snapshots (captured_at, total_events) SELECT now(), count(*) FROM events"
+      },
+      "credentials": { "postgres": { "id": "cred-db-1", "name": "App DB" } }
+    }
+  ],
+  "connections": { "Every 10 minutes": { "main": [[{ "node": "Insert snapshot", "type": "main", "index": 0 }]] } }
+}

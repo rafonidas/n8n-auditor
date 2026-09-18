@@ -1,0 +1,16 @@
+{
+  "name": "CRM sync A",
+  "id": "wf-planted-gov002-a",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Fetch contacts", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "url": "https://crm.fakevendor.io/api/contacts" },
+      "credentials": { "httpHeaderAuth": { "id": "cred-crm-1", "name": "CRM API" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Fetch contacts", "type": "main", "index": 0 }]] } }
+}

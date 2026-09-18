@@ -1,0 +1,23 @@
+{
+  "name": "Basic auth in header",
+  "id": "wf-adv-02",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Call intranet", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "url": "https://intranet.fakevendor.io/api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Basic ZGVtb191c2VyOmh1bnRlcjIyc2VjcmV0" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Call intranet", "type": "main", "index": 0 }]] } }
+}

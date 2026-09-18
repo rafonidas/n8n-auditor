@@ -1,0 +1,6 @@
+{
+  "expected": [
+    { "rule_id": "SEC-003", "node_name": "Fetch internal API" },
+    { "rule_id": "SEC-003", "node_name": "Fetch tunnel" }
+  ]
+}

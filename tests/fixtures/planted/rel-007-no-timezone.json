@@ -1,0 +1,14 @@
+{
+  "name": "Hourly heartbeat",
+  "id": "wf-planted-rel007",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    {
+      "id": "n1", "name": "Every hour", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] } }
+    },
+    { "id": "n2", "name": "Mark heartbeat", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0], "parameters": {} }
+  ],
+  "connections": { "Every hour": { "main": [[{ "node": "Mark heartbeat", "type": "main", "index": 0 }]] } }
+}

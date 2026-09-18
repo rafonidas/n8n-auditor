@@ -1,0 +1,23 @@
+{
+  "name": "Internal report fetch",
+  "id": "wf-planted-sec003",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Fetch internal API", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "url": "http://192.168.10.20:8080/api/reports" }
+    },
+    {
+      "id": "n3", "name": "Fetch tunnel", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [400, 0],
+      "retryOnFail": true,
+      "parameters": { "url": "https://fuzzy-otter-12.ngrok-free.app/hook" }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Fetch internal API", "type": "main", "index": 0 }]] },
+    "Fetch internal API": { "main": [[{ "node": "Fetch tunnel", "type": "main", "index": 0 }]] }
+  }
+}

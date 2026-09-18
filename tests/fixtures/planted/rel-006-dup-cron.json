@@ -1,0 +1,21 @@
+{
+  "name": "Report scheduler",
+  "id": "wf-planted-rel006",
+  "active": false,
+  "settings": { "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    {
+      "id": "n1", "name": "Morning run", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1-5" }] } }
+    },
+    {
+      "id": "n2", "name": "Morning run copy", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 200],
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1-5" }] } }
+    },
+    { "id": "n3", "name": "Build report", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0], "parameters": {} }
+  ],
+  "connections": {
+    "Morning run": { "main": [[{ "node": "Build report", "type": "main", "index": 0 }]] },
+    "Morning run copy": { "main": [[{ "node": "Build report", "type": "main", "index": 0 }]] }
+  }
+}

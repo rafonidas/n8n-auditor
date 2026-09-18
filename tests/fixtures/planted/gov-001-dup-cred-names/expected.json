@@ -1,0 +1,6 @@
+{
+  "expected": [
+    { "rule_id": "GOV-001", "workflow_name": "Billing export" },
+    { "rule_id": "GOV-001", "workflow_name": "Reporting export" }
+  ]
+}

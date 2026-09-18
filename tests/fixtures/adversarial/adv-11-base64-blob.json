@@ -1,0 +1,25 @@
+{
+  "name": "Encoded payload trick",
+  "id": "wf-adv-11",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Send payload", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "url": "https://api.fakevendor.io/v1/import",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "blob", "value": "c2VjcmV0LXZhbHVlLWVuY29kZWQtd2l0aG91dC1tYXJrZXI=" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Send payload", "type": "main", "index": 0 }]] } },
+  "meta": { "note": "Bare base64 without a Basic/Bearer marker: known static miss, AI layer territory." }
+}

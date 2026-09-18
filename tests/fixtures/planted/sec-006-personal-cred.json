@@ -1,0 +1,16 @@
+{
+  "name": "Send weekly digest",
+  "id": "wf-planted-sec006",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-handler" },
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Send digest", "type": "n8n-nodes-base.gmail", "typeVersion": 2.1, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "operation": "send", "subject": "Weekly digest" },
+      "credentials": { "gmailOAuth2": { "id": "cred-p-1", "name": "Marina-Gmail" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Send digest", "type": "main", "index": 0 }]] } }
+}

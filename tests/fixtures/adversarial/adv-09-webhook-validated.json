@@ -1,0 +1,29 @@
+{
+  "name": "Guarded intake",
+  "id": "wf-adv-09",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Intake hook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0], "parameters": { "path": "guarded-intake", "httpMethod": "POST" } },
+    {
+      "id": "n2", "name": "Check shared secret", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [200, 0],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ $json.headers['x-secret'] }}", "rightValue": "={{ $env.INTAKE_SHARED_SECRET }}", "operator": { "type": "string", "operation": "equals" } }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n3", "name": "Store request", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [400, 0],
+      "retryOnFail": true,
+      "parameters": { "operation": "insert", "table": "requests" },
+      "credentials": { "postgres": { "id": "cred-db-1", "name": "App DB" } }
+    }
+  ],
+  "connections": {
+    "Intake hook": { "main": [[{ "node": "Check shared secret", "type": "main", "index": 0 }]] },
+    "Check shared secret": { "main": [[{ "node": "Store request", "type": "main", "index": 0 }]] }
+  }
+}

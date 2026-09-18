@@ -1,0 +1,6 @@
+{
+  "expected": [
+    { "rule_id": "GOV-002", "workflow_name": "CRM sync A" },
+    { "rule_id": "GOV-002", "workflow_name": "CRM sync B" }
+  ]
+}

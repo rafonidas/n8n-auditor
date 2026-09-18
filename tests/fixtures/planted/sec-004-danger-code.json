@@ -1,0 +1,16 @@
+{
+  "name": "Data transform (shelling out)",
+  "id": "wf-planted-sec004",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Convert file", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [200, 0],
+      "parameters": {
+        "jsCode": "const cp = require('child_process');\nconst out = cp.execSync('convert input.png output.pdf');\nreturn [{ json: { out: out.toString() } }];"
+      }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Convert file", "type": "main", "index": 0 }]] } }
+}

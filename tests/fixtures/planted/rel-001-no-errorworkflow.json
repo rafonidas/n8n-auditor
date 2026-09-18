@@ -1,0 +1,14 @@
+{
+  "name": "Nightly cleanup",
+  "id": "wf-planted-rel001",
+  "active": true,
+  "settings": { "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    {
+      "id": "n1", "name": "Every night", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 3 * * *" }] } }
+    },
+    { "id": "n2", "name": "Mark stale rows", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0], "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "stale", "type": "boolean", "value": true }] } } }
+  ],
+  "connections": { "Every night": { "main": [[{ "node": "Mark stale rows", "type": "main", "index": 0 }]] } }
+}

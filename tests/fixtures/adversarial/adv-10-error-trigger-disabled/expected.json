@@ -1,0 +1,6 @@
+{
+  "expected": [
+    { "rule_id": "REL-002", "workflow_name": "Shipment tracker" },
+    { "rule_id": "REL-010", "workflow_name": "Error notifier", "node_name": "Error Trigger" }
+  ]
+}

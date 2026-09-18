@@ -1,0 +1,23 @@
+{
+  "name": "Demo request follow-up",
+  "id": "wf-clean-05",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    {
+      "id": "n1", "name": "Demo request form", "type": "n8n-nodes-base.formTrigger", "typeVersion": 2.2, "position": [0, 0],
+      "parameters": { "formTitle": "Request a demo", "authentication": "basicAuth" }
+    },
+    {
+      "id": "n2", "name": "Send confirmation", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "subject": "We got your demo request", "toEmail": "={{ $json['Contact email'] }}" },
+      "credentials": { "smtp": { "id": "cred-smtp-1", "name": "Notifications SMTP" } }
+    },
+    {
+      "id": "n3", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "Sends a confirmation mail when someone fills the protected demo form. Owner: growth." }
+    }
+  ],
+  "connections": { "Demo request form": { "main": [[{ "node": "Send confirmation", "type": "main", "index": 0 }]] } }
+}

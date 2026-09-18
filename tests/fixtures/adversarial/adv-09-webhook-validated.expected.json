@@ -1,0 +1,1 @@
+{ "expected": [ { "rule_id": "SEC-002", "node_name": "Intake hook", "severity": "medium" } ] }

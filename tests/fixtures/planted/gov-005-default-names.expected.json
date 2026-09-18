@@ -1,0 +1,6 @@
+{
+  "expected": [
+    { "rule_id": "GOV-005", "path": "/nodes" },
+    { "rule_id": "GOV-005", "node_name": "HTTP Request1" }
+  ]
+}

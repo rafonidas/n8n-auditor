@@ -1,0 +1,22 @@
+{
+  "name": "Deploy notifier",
+  "id": "wf-clean-01",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central" },
+  "nodes": [
+    {
+      "id": "n1", "name": "Deploy finished", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0],
+      "parameters": { "path": "deploy-finished", "httpMethod": "POST", "authentication": "headerAuth" }
+    },
+    {
+      "id": "n2", "name": "Post release note", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [200, 0],
+      "parameters": { "operation": "post", "text": "={{ 'Deployed ' + $json.body.version }}" },
+      "credentials": { "slackApi": { "id": "cred-slack-1", "name": "Team Slack Bot" } }
+    },
+    {
+      "id": "n3", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "Posts a release note to the team channel when CI reports a finished deploy. Owner: platform team." }
+    }
+  ],
+  "connections": { "Deploy finished": { "main": [[{ "node": "Post release note", "type": "main", "index": 0 }]] } }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Payroll relay",
+  "id": "wf-planted-gov006",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-handler", "saveDataSuccessExecution": "all" },
+  "nodes": [
+    { "id": "n1", "name": "Payroll ready", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0], "parameters": { "path": "payroll-ready", "httpMethod": "POST", "authentication": "headerAuth" } },
+    {
+      "id": "n2", "name": "Shape payslip", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "employee_email", "type": "string", "value": "={{ $json.body.email }}" },
+            { "id": "a2", "name": "salary", "type": "string", "value": "={{ $json.body.salary }}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": { "Payroll ready": { "main": [[{ "node": "Shape payslip", "type": "main", "index": 0 }]] } }
+}

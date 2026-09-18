@@ -1,0 +1,16 @@
+{
+  "name": "Billing export",
+  "id": "wf-planted-gov001-a",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Read invoices", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "operation": "executeQuery", "query": "SELECT * FROM invoices LIMIT 100" },
+      "credentials": { "postgres": { "id": "cred-old-7", "name": "Prod DB" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Read invoices", "type": "main", "index": 0 }]] } }
+}

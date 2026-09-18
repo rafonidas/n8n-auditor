@@ -1,0 +1,4 @@
+{
+  "options": { "allowed_domains": ["api.goodcorp.example"] },
+  "expected": [ { "rule_id": "SEC-008", "node_name": "Post to unknown vendor" } ]
+}

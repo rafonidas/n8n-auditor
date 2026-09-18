@@ -1,0 +1,23 @@
+{
+  "name": "Payment notifier",
+  "id": "wf-planted-gov003",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Payment received", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0], "parameters": { "path": "payment-received", "httpMethod": "POST", "authentication": "headerAuth" } },
+    { "id": "n2", "name": "Shape message", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0], "parameters": {} }
+  ],
+  "connections": { "Payment received": { "main": [[{ "node": "Shape message", "type": "main", "index": 0 }]] } },
+  "pinData": {
+    "Payment received": [
+      {
+        "json": {
+          "email": "lucia.fernandez@fastmail-demo.io",
+          "nombre": "Lucia Fernandez",
+          "monto": "153200.50",
+          "operation_id": "OP-2024-118822"
+        }
+      }
+    ]
+  }
+}

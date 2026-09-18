@@ -1,0 +1,16 @@
+{
+  "name": "Daily metrics readout",
+  "id": "wf-planted-sec005",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Read metrics", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "operation": "executeQuery", "query": "SELECT day, total FROM metrics ORDER BY day DESC LIMIT 30" },
+      "credentials": { "postgres": { "id": "cred-sr-1", "name": "DB service_role" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Read metrics", "type": "main", "index": 0 }]] } }
+}

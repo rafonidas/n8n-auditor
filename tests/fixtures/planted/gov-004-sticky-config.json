@@ -1,0 +1,15 @@
+{
+  "name": "Warehouse loader",
+  "id": "wf-planted-gov004",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    { "id": "n2", "name": "Load rows", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, 0], "parameters": {} },
+    {
+      "id": "n3", "name": "Ops note", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "Connection details if the credential breaks:\nhost: 10.0.12.5\nuser: svc_loader\ndatabase: warehouse" }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Load rows", "type": "main", "index": 0 }]] } }
+}

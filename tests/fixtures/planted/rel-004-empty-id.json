@@ -1,0 +1,14 @@
+{
+  "name": "Append to registry",
+  "id": "wf-planted-rel004",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Save to table", "type": "n8n-nodes-base.dataTable", "typeVersion": 1, "position": [200, 0],
+      "parameters": { "operation": "insert", "dataTableId": "" }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Save to table", "type": "main", "index": 0 }]] } }
+}

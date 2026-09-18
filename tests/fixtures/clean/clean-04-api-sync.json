@@ -1,0 +1,23 @@
+{
+  "name": "Catalog pull",
+  "id": "wf-clean-04",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Fetch catalog page", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0],
+      "retryOnFail": true, "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "https://api.fakevendor.io/v1/catalog",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Authorization", "value": "=Bearer {{ $env.CATALOG_API_KEY }}" } ] }
+      }
+    },
+    {
+      "id": "n3", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "Pulls the vendor catalog on demand; auth comes from the environment. Owner: integrations." }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Fetch catalog page", "type": "main", "index": 0 }]] } }
+}

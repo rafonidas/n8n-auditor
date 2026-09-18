@@ -1,0 +1,18 @@
+{
+  "name": "Issue watcher",
+  "id": "wf-planted-rel012",
+  "active": false,
+  "settings": { "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    {
+      "id": "n1", "name": "Every 5 minutes", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] } }
+    },
+    {
+      "id": "n2", "name": "Poll issues", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "url": "https://api.github.com/repos/acme-demo/widgets/issues", "method": "GET" }
+    }
+  ],
+  "connections": { "Every 5 minutes": { "main": [[{ "node": "Poll issues", "type": "main", "index": 0 }]] } }
+}

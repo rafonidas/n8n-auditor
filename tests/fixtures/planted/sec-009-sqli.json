@@ -1,0 +1,19 @@
+{
+  "name": "User lookup (interpolated SQL)",
+  "id": "wf-planted-sec009",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Find user", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, email FROM users WHERE email = '{{ $json.email }}'"
+      },
+      "credentials": { "postgres": { "id": "cred-db-1", "name": "App DB" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Find user", "type": "main", "index": 0 }]] } }
+}

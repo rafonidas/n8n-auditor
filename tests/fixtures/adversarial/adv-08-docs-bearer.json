@@ -1,0 +1,15 @@
+{
+  "name": "Documented API flow",
+  "id": "wf-adv-08",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    { "id": "n2", "name": "Fetch items", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0], "retryOnFail": true, "parameters": { "url": "https://api.example.com/v1/items" } },
+    {
+      "id": "n3", "name": "How to test", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "To test manually:\ncurl -H \"Authorization: Bearer YOUR-TOKEN-HERE\" https://api.example.com/v1/items\nThe real token lives in the HTTP credential." }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Fetch items", "type": "main", "index": 0 }]] } }
+}

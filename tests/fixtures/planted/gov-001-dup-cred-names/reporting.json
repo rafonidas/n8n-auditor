@@ -1,0 +1,16 @@
+{
+  "name": "Reporting export",
+  "id": "wf-planted-gov001-b",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Read metrics", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": { "operation": "executeQuery", "query": "SELECT * FROM metrics LIMIT 100" },
+      "credentials": { "postgres": { "id": "cred-new-9", "name": "Prod DB" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Read metrics", "type": "main", "index": 0 }]] } }
+}

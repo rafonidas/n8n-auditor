@@ -1,0 +1,26 @@
+{
+  "name": "Nightly sales rollup",
+  "id": "wf-clean-02",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central", "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    {
+      "id": "n1", "name": "Every night at 2", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 2 * * *" }] } }
+    },
+    {
+      "id": "n2", "name": "Upsert daily rollup", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sales_rollup (day, total) SELECT current_date - 1, sum(amount) FROM sales WHERE sold_at::date = current_date - 1 ON CONFLICT (day) DO UPDATE SET total = EXCLUDED.total"
+      },
+      "credentials": { "postgres": { "id": "cred-dwh-1", "name": "Warehouse Loader" } }
+    },
+    {
+      "id": "n3", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "Aggregates yesterday's sales into sales_rollup, idempotent via ON CONFLICT. Owner: data team." }
+    }
+  ],
+  "connections": { "Every night at 2": { "main": [[{ "node": "Upsert daily rollup", "type": "main", "index": 0 }]] } }
+}

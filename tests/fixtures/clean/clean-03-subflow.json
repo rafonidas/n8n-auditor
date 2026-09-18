@@ -1,0 +1,18 @@
+{
+  "name": "Format customer payload",
+  "id": "wf-clean-03",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "When called by parent", "type": "n8n-nodes-base.executeWorkflowTrigger", "typeVersion": 1.1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Normalize fields", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [200, 0],
+      "parameters": { "jsCode": "return $input.all().map(item => ({ json: { id: item.json.id, label: String(item.json.label ?? '').trim() } }));" }
+    },
+    {
+      "id": "n3", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 200],
+      "parameters": { "content": "Reusable subflow: normalizes customer payloads for the sync flows. Called via Execute Workflow." }
+    }
+  ],
+  "connections": { "When called by parent": { "main": [[{ "node": "Normalize fields", "type": "main", "index": 0 }]] } }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Order orchestrator",
+  "id": "wf-planted-rel009-main",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "n2", "name": "Run billing subflow", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.2, "position": [200, 0],
+      "parameters": { "workflowId": { "__rl": true, "value": "wf-billing-gone", "mode": "list" } }
+    }
+  ],
+  "connections": { "Manual Trigger": { "main": [[{ "node": "Run billing subflow", "type": "main", "index": 0 }]] } }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Mystery flow",
+  "id": "wf-planted-gov005",
+  "active": false,
+  "settings": {},
+  "nodes": [
+    { "id": "n1", "name": "Manual Trigger", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    { "id": "n2", "name": "HTTP Request1", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0], "retryOnFail": true, "parameters": { "url": "https://api.fakevendor.io/v1/things" } },
+    { "id": "n3", "name": "Code2", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [400, 0], "parameters": { "jsCode": "return $input.all();" } },
+    { "id": "n4", "name": "Merge3", "type": "n8n-nodes-base.merge", "typeVersion": 3, "position": [600, 0], "parameters": {} }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "HTTP Request1", "type": "main", "index": 0 }]] },
+    "HTTP Request1": { "main": [[{ "node": "Code2", "type": "main", "index": 0 }]] },
+    "Code2": { "main": [[{ "node": "Merge3", "type": "main", "index": 0 }]] }
+  }
+}
