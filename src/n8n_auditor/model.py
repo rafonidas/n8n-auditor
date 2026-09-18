@@ -1,8 +1,9 @@
 """Core data model: Workflow, Node, Finding."""
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any
 
 SEVERITIES = ["info", "low", "medium", "high", "critical"]
 
@@ -23,7 +24,7 @@ class Node:
     raw: dict[str, Any]
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> "Node":
+    def from_json(cls, data: dict[str, Any]) -> Node:
         return cls(
             name=data.get("name", ""),
             type=data.get("type", ""),
@@ -55,7 +56,7 @@ class Workflow:
     raw: dict[str, Any]
 
     @classmethod
-    def from_json(cls, data: dict[str, Any], source_path: str | None = None) -> "Workflow":
+    def from_json(cls, data: dict[str, Any], source_path: str | None = None) -> Workflow:
         return cls(
             name=data.get("name", "(unnamed)"),
             id=data.get("id"),

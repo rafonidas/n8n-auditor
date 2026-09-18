@@ -7,13 +7,11 @@ from ..jsonwalk import walk_strings
 from ..model import Finding, Workflow
 from ..secrets import (
     detect_secrets,
-    is_expression_reference,
-    is_placeholder,
     is_sensitive_field_name,
     looks_like_literal_secret_value,
     redact,
 )
-from . import ScanContext, REGISTRY, make_finding, rule
+from . import REGISTRY, ScanContext, make_finding, rule
 
 STICKY_TYPE = "n8n-nodes-base.stickyNote"
 

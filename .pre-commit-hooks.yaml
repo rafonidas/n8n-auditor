@@ -1,0 +1,8 @@
+# Hook definition so repos can use this repo directly in .pre-commit-config.yaml
+- id: n8n-auditor
+  name: n8n-auditor (static scan)
+  description: Audit staged n8n workflow JSON exports (security/reliability/governance)
+  entry: n8n-auditor scan --no-llm --format json --fail-on high
+  language: python
+  files: \.json$
+  pass_filenames: true

@@ -4,7 +4,6 @@ Targets (from SPEC): recall >= 0.95 on planted, precision >= 0.9 on adversarial,
 and zero non-info false positives on the clean set.
 """
 import pytest
-
 from eval_lib import discover_units, evaluate, print_table
 
 RECALL_TARGET = 0.95

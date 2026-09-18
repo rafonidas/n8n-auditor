@@ -65,7 +65,7 @@ def _decodes_to_userpass(b64: str) -> bool:
         decoded = base64.b64decode(b64, validate=True).decode("utf-8", errors="strict")
     except (binascii.Error, UnicodeDecodeError, ValueError):
         return False
-    return ":" in decoded and 3 <= decoded.index(":") and len(decoded) >= 5
+    return ":" in decoded and decoded.index(":") >= 3 and len(decoded) >= 5
 
 
 def detect_secrets(value: str) -> list[tuple[str, str]]:

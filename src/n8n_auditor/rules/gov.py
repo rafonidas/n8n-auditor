@@ -8,7 +8,7 @@ from ..crossref import all_credentials
 from ..jsonwalk import walk_strings
 from ..model import Finding, Workflow
 from ..secrets import detect_secrets, redact
-from . import ScanContext, REGISTRY, make_finding, rule
+from . import REGISTRY, ScanContext, make_finding, rule
 
 EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 FAKE_EMAIL_DOMAINS = re.compile(r"(?i)@(example\.(com|org|net)|test\.com|email\.com|acme\.test)$")

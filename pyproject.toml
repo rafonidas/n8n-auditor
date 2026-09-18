@@ -33,6 +33,19 @@ where = ["src"]
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "SIM", "UP"]
+ignore = [
+    "B008",  # typer.Option/Argument in defaults is the typer idiom
+    "E501",  # long lines in rule descriptions/CLI help are fine
+    "B904",  # typer.Exit inside except blocks is intentional
+    "B007",  # unpacking tuples with unused members reads better than _renames
+    "SIM102", "SIM103", "SIM105", "SIM108",  # explicit ifs preferred over one-liners here
+]
+
+[tool.ruff.lint.per-file-ignores]
+"evals/run_llm_eval.py" = ["E402"]  # sys.path bootstrap before imports
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -s"

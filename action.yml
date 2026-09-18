@@ -1,0 +1,48 @@
+name: "n8n-auditor"
+description: "Static + AI audit of n8n workflow JSON exports (security, reliability, governance). Outputs SARIF for code scanning."
+author: "Rafael Nunez"
+branding:
+  icon: "shield"
+  color: "orange"
+
+inputs:
+  path:
+    description: "Directory (or glob) with workflow .json exports"
+    required: false
+    default: "workflows"
+  fail-on:
+    description: "Fail the job when findings of this severity (or higher) exist: info|low|medium|high|critical"
+    required: false
+    default: "high"
+  baseline:
+    description: "Optional baseline file with known fingerprints to suppress"
+    required: false
+    default: ""
+  gemini-api-key:
+    description: "Optional GEMINI_API_KEY; when set, the AI review layer runs too"
+    required: false
+    default: ""
+  sarif-file:
+    description: "Where to write the SARIF output"
+    required: false
+    default: "n8n-auditor.sarif"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install n8n-auditor
+      shell: bash
+      run: pip install "${{ github.action_path }}"
+    - name: Run audit
+      shell: bash
+      env:
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+      run: |
+        ARGS="--dir '${{ inputs.path }}' --format sarif --output '${{ inputs.sarif-file }}' --fail-on '${{ inputs.fail-on }}'"
+        if [ -z "$GEMINI_API_KEY" ]; then ARGS="$ARGS --no-llm"; fi
+        if [ -n "${{ inputs.baseline }}" ]; then ARGS="$ARGS --baseline '${{ inputs.baseline }}'"; fi
+        eval n8n-auditor scan $ARGS

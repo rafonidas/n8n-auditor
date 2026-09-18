@@ -1,0 +1,33 @@
+# Example GitHub workflow: audit exported n8n workflows on every push
+# and publish results to the Security tab (code scanning).
+name: audit-n8n-workflows
+
+on:
+  push:
+    paths: ["workflows/**.json"]
+  pull_request:
+    paths: ["workflows/**.json"]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit workflows
+        uses: rafanunez/n8n-auditor@main
+        # Keep the job green while adopting: continue-on-error + baseline
+        continue-on-error: true
+        with:
+          path: workflows
+          fail-on: high
+          # gemini-api-key: ${{ secrets.GEMINI_API_KEY }}   # enables the AI layer
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: n8n-auditor.sarif

@@ -6,7 +6,7 @@ import re
 from ..crossref import error_trigger_ok, index_by_id
 from ..jsonwalk import walk_strings
 from ..model import Finding, Workflow
-from . import ScanContext, REGISTRY, make_finding, rule
+from . import REGISTRY, ScanContext, make_finding, rule
 
 FLAKY_NODE_TYPES = {
     "httpRequest", "postgres", "mySql", "microsoftSql", "mongoDb", "supabase", "redis",

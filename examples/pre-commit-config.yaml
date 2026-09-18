@@ -1,0 +1,10 @@
+# Example .pre-commit-config.yaml for a repo that backs up n8n workflow exports.
+repos:
+  - repo: https://github.com/rafanunez/n8n-auditor
+    rev: v0.1.0
+    hooks:
+      - id: n8n-auditor
+        # Restrict to the folder holding workflow exports:
+        files: ^workflows/.*\.json$
+        # Optional: keep known findings out of the way while you fix them
+        # args: ["--baseline", "baseline.json", "scan", ...]

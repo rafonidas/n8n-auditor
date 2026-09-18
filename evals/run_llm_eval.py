@@ -15,7 +15,6 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -24,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from n8n_auditor.engine import scan  # noqa: E402
-from n8n_auditor.llm import LLMError, LLMReviewer, MODEL_PREFERENCE  # noqa: E402
+from n8n_auditor.llm import MODEL_PREFERENCE, LLMError, LLMReviewer  # noqa: E402
 from n8n_auditor.loader import load_file  # noqa: E402
 from n8n_auditor.rules import ScanContext  # noqa: E402
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from dotenv import load_dotenv
@@ -31,18 +30,18 @@ def _main() -> None:
 @app.command()
 def scan(
     paths: list[str] = typer.Argument(None, help="Workflow .json files, directories or globs."),
-    directory: Optional[str] = typer.Option(None, "--dir", help="Scan every .json under a directory."),
+    directory: str | None = typer.Option(None, "--dir", help="Scan every .json under a directory."),
     remote: bool = typer.Option(False, "--remote", help="Fetch all workflows from N8N_API_URL."),
     fmt: str = typer.Option("md", "--format", help="Output format: json | sarif | md."),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output file (json/sarif) or directory (md)."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output file (json/sarif) or directory (md)."),
     fail_on: str = typer.Option("high", "--fail-on", help="Exit 1 when findings ≥ this severity."),
-    baseline: Optional[Path] = typer.Option(None, "--baseline", help="Suppress fingerprints listed in this file."),
-    write_baseline: Optional[Path] = typer.Option(None, "--write-baseline", help="Write current findings as a baseline and exit 0."),
+    baseline: Path | None = typer.Option(None, "--baseline", help="Suppress fingerprints listed in this file."),
+    write_baseline: Path | None = typer.Option(None, "--write-baseline", help="Write current findings as a baseline and exit 0."),
     no_llm: bool = typer.Option(False, "--no-llm", help="Skip the AI layer (static rules only)."),
     max_llm_calls: int = typer.Option(20, "--max-llm-calls", help="Hard cap on Gemini calls per run."),
-    allowed_domains: Optional[str] = typer.Option(None, "--allowed-domains", help="Comma-separated domain allowlist for SEC-008."),
-    personal_cred_pattern: Optional[str] = typer.Option(None, "--personal-cred-pattern", help="Regex marking personal credential names (SEC-006)."),
-    expected_timezone: Optional[str] = typer.Option(None, "--expected-timezone", help="Expected settings.timezone (REL-007)."),
+    allowed_domains: str | None = typer.Option(None, "--allowed-domains", help="Comma-separated domain allowlist for SEC-008."),
+    personal_cred_pattern: str | None = typer.Option(None, "--personal-cred-pattern", help="Regex marking personal credential names (SEC-006)."),
+    expected_timezone: str | None = typer.Option(None, "--expected-timezone", help="Expected settings.timezone (REL-007)."),
 ) -> None:
     """Audit one or more n8n workflows."""
     if fmt not in ("json", "sarif", "md"):
@@ -160,7 +159,7 @@ def _emit(fmt, output, workflows, findings, llm_results, ctx) -> None:
             console.print(f"report: {path}")
 
 
-def _write_or_print(text: str, output: Optional[Path]) -> None:
+def _write_or_print(text: str, output: Path | None) -> None:
     if output:
         Path(output).write_text(text, encoding="utf-8")
         console.print(f"report: {output}")
@@ -169,17 +168,24 @@ def _write_or_print(text: str, output: Optional[Path]) -> None:
 
 
 @app.command()
-def rules() -> None:
+def rules(markdown: bool = typer.Option(False, "--markdown", help="Emit a Markdown table (for the README).")) -> None:
     """List the rule catalog."""
-    from rich.table import Table
-
     from .rules import REGISTRY, load_all_rules
 
     load_all_rules()
+    ordered = sorted(REGISTRY.values(), key=lambda r: r.id)
+    if markdown:
+        print("| id | severity | category | what it detects |")
+        print("|---|---|---|---|")
+        for r in ordered:
+            print(f"| {r.id} | {r.severity} | {r.category} | **{r.title}.** {r.description} |")
+        return
+    from rich.table import Table
+
     table = Table(title="n8n-auditor rules")
     for col in ("id", "severity", "category", "title"):
         table.add_column(col)
-    for r in sorted(REGISTRY.values(), key=lambda r: r.id):
+    for r in ordered:
         table.add_row(r.id, r.severity, r.category, r.title)
     Console().print(table)
 
