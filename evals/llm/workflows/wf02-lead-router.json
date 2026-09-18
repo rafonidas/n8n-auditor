@@ -1,0 +1,34 @@
+{
+  "name": "Lead router",
+  "id": "wf-eval-02",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central" },
+  "nodes": [
+    { "id": "n01", "name": "Lead form hook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0], "parameters": { "path": "lead-form", "httpMethod": "POST" } },
+    { "id": "n02", "name": "Validate payload", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [200, 0], "parameters": { "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $json.body.email }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }] } } },
+    { "id": "n03", "name": "Which env flow", "type": "n8n-nodes-base.switch", "typeVersion": 3.2, "position": [400, -100], "parameters": { "rules": { "values": [{ "conditions": { "conditions": [{ "id": "c2", "leftValue": "={{ $workflow.name }}", "rightValue": "Lead router PROD", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "prod" }] } } },
+    { "id": "n04", "name": "Score lead", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [600, -150], "parameters": { "jsCode": "const size = Number($json.body.company_size || 0);\nreturn [{ json: { ...$json.body, score: size > 100 ? 'A' : size > 10 ? 'B' : 'C' } }];" } },
+    { "id": "n05", "name": "Is A lead", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [800, -150], "parameters": { "conditions": { "conditions": [{ "id": "c3", "leftValue": "={{ $json.score }}", "rightValue": "A", "operator": { "type": "string", "operation": "equals" } }] } } },
+    { "id": "n06", "name": "Create CRM deal", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1000, -250], "retryOnFail": true, "parameters": { "url": "https://crm.fakevendor.io/api/deals", "method": "POST", "sendHeaders": true, "headerParameters": { "parameters": [{ "name": "Authorization", "value": "=Bearer {{ $env.CRM_TOKEN }}" }] } } },
+    { "id": "n07", "name": "Assign to rep", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1200, -250], "retryOnFail": true, "parameters": { "url": "https://crm.fakevendor.io/api/assignments", "method": "POST" } },
+    { "id": "n08", "name": "Notify rep by mail", "type": "n8n-nodes-base.gmail", "typeVersion": 2.1, "position": [1400, -250], "retryOnFail": true, "parameters": { "operation": "send", "subject": "New A lead assigned" }, "credentials": { "gmailOAuth2": { "id": "cred-gm-2", "name": "Federico-Gmail" } } },
+    { "id": "n09", "name": "Add to nurture list", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1000, -50], "retryOnFail": true, "parameters": { "url": "https://mail.fakevendor.io/api/lists/nurture/members", "method": "POST" } },
+    { "id": "n10", "name": "Log lead", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1600, -150], "retryOnFail": true, "parameters": { "operation": "insert", "table": "leads_log", "columns": "email,score" }, "credentials": { "postgres": { "id": "cred-db-3", "name": "Marketing DB" } } },
+    { "id": "n11", "name": "Reply ok", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [1800, -150], "parameters": { "respondWith": "json", "responseBody": "={\"status\":\"ok\"}" } },
+    { "id": "n12", "name": "Reply invalid", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [400, 150], "parameters": { "options": { "responseCode": 400 }, "respondWith": "json", "responseBody": "={\"status\":\"invalid\"}" } },
+    { "id": "n13", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Receives marketing site leads, scores them and routes A leads to the CRM + a rep." } },
+    { "id": "n14", "name": "Dedupe by email", "type": "n8n-nodes-base.removeDuplicates", "typeVersion": 2, "position": [600, -50], "disabled": true, "parameters": { "compare": "selectedFields", "fieldsToCompare": "email" } }
+  ],
+  "connections": {
+    "Lead form hook": { "main": [[{ "node": "Validate payload", "type": "main", "index": 0 }]] },
+    "Validate payload": { "main": [[{ "node": "Which env flow", "type": "main", "index": 0 }], [{ "node": "Reply invalid", "type": "main", "index": 0 }]] },
+    "Which env flow": { "main": [[{ "node": "Score lead", "type": "main", "index": 0 }]] },
+    "Score lead": { "main": [[{ "node": "Is A lead", "type": "main", "index": 0 }]] },
+    "Is A lead": { "main": [[{ "node": "Create CRM deal", "type": "main", "index": 0 }], [{ "node": "Add to nurture list", "type": "main", "index": 0 }]] },
+    "Create CRM deal": { "main": [[{ "node": "Assign to rep", "type": "main", "index": 0 }]] },
+    "Assign to rep": { "main": [[{ "node": "Notify rep by mail", "type": "main", "index": 0 }]] },
+    "Notify rep by mail": { "main": [[{ "node": "Log lead", "type": "main", "index": 0 }]] },
+    "Add to nurture list": { "main": [[{ "node": "Log lead", "type": "main", "index": 0 }]] },
+    "Log lead": { "main": [[{ "node": "Reply ok", "type": "main", "index": 0 }]] }
+  }
+}

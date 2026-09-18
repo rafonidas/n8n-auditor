@@ -1,0 +1,35 @@
+{
+  "name": "Notifier hub",
+  "id": "wf-eval-08",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central", "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    { "id": "n01", "name": "Alert webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, -100], "parameters": { "path": "alerts-in", "httpMethod": "POST", "authentication": "headerAuth" } },
+    { "id": "n02", "name": "Digest schedule", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 100], "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * *" }] } } },
+    { "id": "n03", "name": "Digest schedule copy", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 250], "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * *" }] } } },
+    { "id": "n04", "name": "Normalize alert", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [200, -100], "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "severity", "type": "string", "value": "={{ $json.body.severity || 'info' }}" }, { "id": "a2", "name": "message", "type": "string", "value": "={{ $json.body.message }}" }] } } },
+    { "id": "n05", "name": "Severity switch", "type": "n8n-nodes-base.switch", "typeVersion": 3.2, "position": [400, -100], "parameters": { "rules": { "values": [{ "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $json.severity }}", "rightValue": "critical", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "critical" }, { "conditions": { "conditions": [{ "id": "c2", "leftValue": "={{ $json.severity }}", "rightValue": "warning", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "warning" }] }, "options": { "fallbackOutput": "extra" } } },
+    { "id": "n06", "name": "Page on-call", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [600, -250], "retryOnFail": true, "parameters": { "url": "https://pager.fakevendor.io/api/incidents", "method": "POST" } },
+    { "id": "n07", "name": "Post to alerts channel", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [600, -100], "parameters": { "operation": "post", "text": "={{ '[' + $json.severity + '] ' + $json.message }}" }, "credentials": { "slackApi": { "id": "cred-slack-2", "name": "Alerts Bot" } } },
+    { "id": "n08", "name": "Store alert", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [600, 50], "retryOnFail": true, "parameters": { "operation": "insert", "table": "alerts", "columns": "severity,message" }, "credentials": { "postgres": { "id": "cred-db-6", "name": "Ops DB" } } },
+    { "id": "n09", "name": "Fetch yesterday alerts", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "SELECT severity, count(*) AS n FROM alerts WHERE created_at > now() - interval '1 day' GROUP BY severity" }, "credentials": { "postgres": { "id": "cred-db-6", "name": "Ops DB" } } },
+    { "id": "n10", "name": "Compose digest", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [400, 100], "parameters": { "jsCode": "const rows = $input.all();\nconst lines = rows.map(r => `${r.json.severity}: ${r.json.n}`);\nreturn [{ json: { text: 'Daily alert digest\\n' + lines.join('\\n') } }];" } },
+    { "id": "n11", "name": "Mail digest", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1, "position": [600, 200], "retryOnFail": true, "parameters": { "subject": "Daily alert digest", "toEmail": "ops@fakecompany.example" }, "credentials": { "smtp": { "id": "cred-smtp-2", "name": "Notifications SMTP" } } },
+    { "id": "n12", "name": "Post digest", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [600, 350], "parameters": { "operation": "post", "text": "={{ $json.text }}" }, "credentials": { "slackApi": { "id": "cred-slack-3", "name": "Alerts Bot" } } },
+    { "id": "n13", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 450], "parameters": { "content": "Central notifier: receives alerts, routes by severity, and sends a daily digest at 9." } },
+    { "id": "n14", "name": "Ack reply", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [800, -100], "parameters": { "respondWith": "json", "responseBody": "={\"status\":\"received\"}" } }
+  ],
+  "connections": {
+    "Alert webhook": { "main": [[{ "node": "Normalize alert", "type": "main", "index": 0 }]] },
+    "Normalize alert": { "main": [[{ "node": "Severity switch", "type": "main", "index": 0 }]] },
+    "Severity switch": { "main": [[{ "node": "Page on-call", "type": "main", "index": 0 }], [{ "node": "Post to alerts channel", "type": "main", "index": 0 }], [{ "node": "Store alert", "type": "main", "index": 0 }]] },
+    "Page on-call": { "main": [[{ "node": "Post to alerts channel", "type": "main", "index": 0 }]] },
+    "Post to alerts channel": { "main": [[{ "node": "Store alert", "type": "main", "index": 0 }]] },
+    "Store alert": { "main": [[{ "node": "Ack reply", "type": "main", "index": 0 }]] },
+    "Digest schedule": { "main": [[{ "node": "Fetch yesterday alerts", "type": "main", "index": 0 }]] },
+    "Digest schedule copy": { "main": [[{ "node": "Fetch yesterday alerts", "type": "main", "index": 0 }]] },
+    "Fetch yesterday alerts": { "main": [[{ "node": "Compose digest", "type": "main", "index": 0 }]] },
+    "Compose digest": { "main": [[{ "node": "Mail digest", "type": "main", "index": 0 }]] },
+    "Mail digest": { "main": [[{ "node": "Post digest", "type": "main", "index": 0 }]] }
+  }
+}

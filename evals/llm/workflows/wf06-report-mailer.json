@@ -1,0 +1,37 @@
+{
+  "name": "Weekly ops report",
+  "id": "wf-eval-06",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central", "timezone": "America/Argentina/Buenos_Aires", "saveDataSuccessExecution": "all" },
+  "nodes": [
+    { "id": "n01", "name": "Monday 7am", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0], "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 7 * * 1" }] } } },
+    { "id": "n02", "name": "Fetch week tickets", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "SELECT ticket_id, customer_email, opened_at, closed_at, satisfaction FROM tickets WHERE opened_at > now() - interval '7 days'" }, "credentials": { "postgres": { "id": "cred-db-5", "name": "Support DB" } } },
+    { "id": "n03", "name": "Sort by fecha", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [400, 0], "parameters": { "jsCode": "const items = $input.all();\nitems.sort((a, b) => a.json.opened_at > b.json.opened_at ? 1 : -1);\nreturn items;" } },
+    { "id": "n04", "name": "Compute KPIs", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [600, 0], "parameters": { "jsCode": "const items = $input.all();\nconst closed = items.filter(i => i.json.closed_at);\nconst avgSat = closed.reduce((s, i) => s + (i.json.satisfaction ?? 0), 0) / closed.length;\nreturn [{ json: { total: items.length, closed: closed.length, avgSat } }];" } },
+    { "id": "n05", "name": "Render HTML report", "type": "n8n-nodes-base.html", "typeVersion": 1.2, "position": [800, 0], "parameters": { "html": "<h1>Weekly ops</h1><p>Total: {{ $json.total }} / Closed: {{ $json.closed }} / CSAT: {{ $json.avgSat }}</p>" } },
+    { "id": "n06", "name": "Mail to management", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1, "position": [1000, 0], "retryOnFail": true, "parameters": { "subject": "Weekly ops report", "toEmail": "management@fakecompany.example" }, "credentials": { "smtp": { "id": "cred-smtp-1", "name": "Notifications SMTP" } } },
+    { "id": "n07", "name": "Archive metrics", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1000, 150], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "INSERT INTO weekly_kpis (week, total, closed, avg_sat) VALUES (date_trunc('week', now()), $1, $2, $3) ON CONFLICT (week) DO UPDATE SET total = EXCLUDED.total, closed = EXCLUDED.closed, avg_sat = EXCLUDED.avg_sat", "options": { "queryReplacement": "={{ $json.total }},{{ $json.closed }},{{ $json.avgSat }}" } }, "credentials": { "postgres": { "id": "cred-db-5", "name": "Support DB" } } },
+    { "id": "n08", "name": "Post KPI summary", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [1200, 0], "parameters": { "operation": "post", "text": "=Weekly: {{ $json.total }} tickets, CSAT {{ $json.avgSat }}" }, "credentials": { "slackApi": { "id": "cred-slack-1", "name": "Team Slack Bot" } } },
+    { "id": "n09", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Builds and mails the weekly support KPI report every Monday morning." } },
+    { "id": "n10", "name": "Split preview rows", "type": "n8n-nodes-base.limit", "typeVersion": 1, "position": [400, 150], "parameters": { "maxItems": 10 } },
+    { "id": "n11", "name": "Preview table", "type": "n8n-nodes-base.html", "typeVersion": 1.2, "position": [600, 150], "parameters": { "html": "<table>{{ $json.ticket_id }}</table>" } },
+    { "id": "n12", "name": "Merge report parts", "type": "n8n-nodes-base.merge", "typeVersion": 3, "position": [800, 75], "parameters": {} }
+  ],
+  "connections": {
+    "Monday 7am": { "main": [[{ "node": "Fetch week tickets", "type": "main", "index": 0 }]] },
+    "Fetch week tickets": { "main": [[{ "node": "Sort by fecha", "type": "main", "index": 0 }], [{ "node": "Split preview rows", "type": "main", "index": 0 }]] },
+    "Sort by fecha": { "main": [[{ "node": "Compute KPIs", "type": "main", "index": 0 }]] },
+    "Compute KPIs": { "main": [[{ "node": "Render HTML report", "type": "main", "index": 0 }]] },
+    "Render HTML report": { "main": [[{ "node": "Merge report parts", "type": "main", "index": 0 }]] },
+    "Split preview rows": { "main": [[{ "node": "Preview table", "type": "main", "index": 0 }]] },
+    "Preview table": { "main": [[{ "node": "Merge report parts", "type": "main", "index": 1 }]] },
+    "Merge report parts": { "main": [[{ "node": "Mail to management", "type": "main", "index": 0 }]] },
+    "Mail to management": { "main": [[{ "node": "Archive metrics", "type": "main", "index": 0 }], [{ "node": "Post KPI summary", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {
+    "Fetch week tickets": [
+      { "json": { "ticket_id": "T-88121", "customer_email": "carla.gomez@clientmail-demo.io", "opened_at": "2026-09-08T10:11:00Z", "closed_at": "2026-09-09T15:02:00Z", "satisfaction": 4 } },
+      { "json": { "ticket_id": "T-88122", "customer_email": "jorge.ruiz@clientmail-demo.io", "opened_at": "2026-09-08T11:40:00Z", "closed_at": null, "satisfaction": null } }
+    ]
+  }
+}

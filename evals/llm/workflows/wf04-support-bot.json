@@ -1,0 +1,34 @@
+{
+  "name": "Support bot",
+  "id": "wf-eval-04",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central" },
+  "nodes": [
+    { "id": "n01", "name": "Chat message in", "type": "@n8n/n8n-nodes-langchain.chatTrigger", "typeVersion": 1.1, "position": [0, 0], "parameters": { "public": true } },
+    { "id": "n02", "name": "Load user context", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "SELECT plan, locale FROM users WHERE session_id = $1", "options": { "queryReplacement": "={{ $json.sessionId }}" } }, "credentials": { "postgres": { "id": "cred-db-5", "name": "Support DB" } } },
+    { "id": "n03", "name": "Debug env dump", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [400, 150], "parameters": { "jsCode": "// left from debugging session\nconsole.log(process.env);\nreturn $input.all();" } },
+    { "id": "n04", "name": "Classify intent", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [600, 0], "retryOnFail": true, "parameters": { "url": "https://ai.fakevendor.io/v1/classify", "method": "POST", "sendHeaders": true, "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmYWtlIjp0cnVlLCJzY29wZSI6ImNsYXNzaWZ5In0.ZmFrZS1zaWctYWJjZGVmMTIzNDU2Nzg5MA" }] } } },
+    { "id": "n05", "name": "Route intent", "type": "n8n-nodes-base.switch", "typeVersion": 3.2, "position": [800, 0], "parameters": { "rules": { "values": [{ "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $json.intent }}", "rightValue": "billing", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "billing" }, { "conditions": { "conditions": [{ "id": "c2", "leftValue": "={{ $json.intent }}", "rightValue": "technical", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "technical" }] }, "options": { "fallbackOutput": "extra" } } },
+    { "id": "n06", "name": "Fetch billing answer", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1000, -150], "retryOnFail": true, "parameters": { "url": "https://kb.fakevendor.io/api/billing", "method": "GET" } },
+    { "id": "n07", "name": "Fetch technical answer", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1000, 0], "retryOnFail": true, "parameters": { "url": "https://kb.fakevendor.io/api/technical", "method": "GET" } },
+    { "id": "n08", "name": "Human handoff ticket", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1000, 150], "retryOnFail": true, "parameters": { "url": "https://desk.fakevendor.io/api/tickets", "method": "POST" } },
+    { "id": "n09", "name": "Compose reply", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [1200, 0], "parameters": { "jsCode": "const a = $input.all()[0]?.json;\nreturn [{ json: { reply: a?.answer ?? 'A human will reach out shortly.' } }];" } },
+    { "id": "n10", "name": "Log conversation", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1400, 0], "retryOnFail": true, "parameters": { "operation": "insert", "table": "chat_log", "columns": "session_id,intent,reply" }, "credentials": { "postgres": { "id": "cred-db-5", "name": "Support DB" } } },
+    { "id": "n11", "name": "Reply to user", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1600, 0], "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "output", "type": "string", "value": "={{ $json.reply }}" }] } } },
+    { "id": "n12", "name": "Escalation mail", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1, "position": [1200, 250], "retryOnFail": true, "parameters": { "subject": "Chat escalation", "toEmail": "support-team@fakecompany.example" }, "credentials": { "smtp": { "id": "cred-smtp-1", "name": "Notifications SMTP" } } },
+    { "id": "n13", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Public support chat: classifies the question, answers from the KB or opens a ticket." } },
+    { "id": "n14", "name": "Rate limiter placeholder", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [200, 150], "parameters": {} }
+  ],
+  "connections": {
+    "Chat message in": { "main": [[{ "node": "Load user context", "type": "main", "index": 0 }]] },
+    "Load user context": { "main": [[{ "node": "Debug env dump", "type": "main", "index": 0 }]] },
+    "Debug env dump": { "main": [[{ "node": "Classify intent", "type": "main", "index": 0 }]] },
+    "Classify intent": { "main": [[{ "node": "Route intent", "type": "main", "index": 0 }]] },
+    "Route intent": { "main": [[{ "node": "Fetch billing answer", "type": "main", "index": 0 }], [{ "node": "Fetch technical answer", "type": "main", "index": 0 }], [{ "node": "Human handoff ticket", "type": "main", "index": 0 }]] },
+    "Fetch billing answer": { "main": [[{ "node": "Compose reply", "type": "main", "index": 0 }]] },
+    "Fetch technical answer": { "main": [[{ "node": "Compose reply", "type": "main", "index": 0 }]] },
+    "Human handoff ticket": { "main": [[{ "node": "Compose reply", "type": "main", "index": 0 }], [{ "node": "Escalation mail", "type": "main", "index": 0 }]] },
+    "Compose reply": { "main": [[{ "node": "Log conversation", "type": "main", "index": 0 }]] },
+    "Log conversation": { "main": [[{ "node": "Reply to user", "type": "main", "index": 0 }]] }
+  }
+}

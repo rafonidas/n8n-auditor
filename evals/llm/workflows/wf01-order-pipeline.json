@@ -1,0 +1,36 @@
+{
+  "name": "Order pipeline",
+  "id": "wf-eval-01",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central", "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    { "id": "n01", "name": "Every 5 minutes", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0], "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] } } },
+    { "id": "n02", "name": "Poll new orders", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [200, 0], "retryOnFail": true, "parameters": { "url": "https://shop.myshopify.com/admin/api/orders.json", "method": "GET", "sendHeaders": true, "headerParameters": { "parameters": [{ "name": "X-Shopify-Access-Token", "value": "={{ $env.SHOP_TOKEN }}" }] } } },
+    { "id": "n03", "name": "Split orders", "type": "n8n-nodes-base.splitOut", "typeVersion": 1, "position": [400, 0], "parameters": { "fieldToSplitOut": "orders" } },
+    { "id": "n04", "name": "Sort by created_at", "type": "n8n-nodes-base.sort", "typeVersion": 1, "position": [600, 0], "parameters": { "sortFieldsUi": { "sortField": [{ "fieldName": "created_at", "order": "ascending" }] } } },
+    { "id": "n05", "name": "Is paid order", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [800, 0], "parameters": { "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $json.financial_status }}", "rightValue": "paid", "operator": { "type": "string", "operation": "equals" } }] } } },
+    { "id": "n06", "name": "Normalize order", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1000, -100], "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "order_ref", "type": "string", "value": "={{ $json.id }}" }, { "id": "a2", "name": "total", "type": "number", "value": "={{ Number($json.total_price) }}" }] } } },
+    { "id": "n07", "name": "Lookup customer", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1200, -100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "SELECT id FROM customers WHERE external_id = $1", "options": { "queryReplacement": "={{ $json.customer_id }}" } }, "credentials": { "postgres": { "id": "cred-db-2", "name": "Orders DB" } } },
+    { "id": "n08", "name": "Insert order row", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1400, -100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "INSERT INTO orders (order_ref, customer_id, total) VALUES ($1, $2, $3)", "options": { "queryReplacement": "={{ $json.order_ref }},{{ $json.customer_id }},{{ $json.total }}" } }, "credentials": { "postgres": { "id": "cred-db-2", "name": "Orders DB" } } },
+    { "id": "n09", "name": "Format receipt", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [1600, -100], "parameters": { "jsCode": "return $input.all().map(i => ({ json: { text: `Order ${i.json.order_ref}: $${i.json.total}` } }));" } },
+    { "id": "n10", "name": "Notify sales channel", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [1800, -100], "parameters": { "operation": "post", "text": "={{ $json.text }}" }, "credentials": { "slackApi": { "id": "cred-slack-1", "name": "Team Slack Bot" } } },
+    { "id": "n11", "name": "Log skipped order", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1000, 150], "parameters": { "assignments": { "assignments": [{ "id": "a3", "name": "skipped", "type": "boolean", "value": true }] } } },
+    { "id": "n12", "name": "Count batch", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [2000, -100], "parameters": { "jsCode": "return [{ json: { processed: $input.all().length, at: new Date().toISOString() } }];" } },
+    { "id": "n13", "name": "Update heartbeat", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [2200, -100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "INSERT INTO job_heartbeats (job, last_run) VALUES ('order-pipeline', now()) ON CONFLICT (job) DO UPDATE SET last_run = EXCLUDED.last_run" }, "credentials": { "postgres": { "id": "cred-db-2", "name": "Orders DB" } } },
+    { "id": "n14", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Polls the shop API every 5 minutes for new orders, stores paid ones and notifies sales." } },
+    { "id": "n15", "name": "Old CSV export", "type": "n8n-nodes-base.spreadsheetFile", "typeVersion": 2, "position": [2000, 150], "disabled": true, "parameters": { "operation": "toFile" } }
+  ],
+  "connections": {
+    "Every 5 minutes": { "main": [[{ "node": "Poll new orders", "type": "main", "index": 0 }]] },
+    "Poll new orders": { "main": [[{ "node": "Split orders", "type": "main", "index": 0 }]] },
+    "Split orders": { "main": [[{ "node": "Sort by created_at", "type": "main", "index": 0 }]] },
+    "Sort by created_at": { "main": [[{ "node": "Is paid order", "type": "main", "index": 0 }]] },
+    "Is paid order": { "main": [[{ "node": "Normalize order", "type": "main", "index": 0 }], [{ "node": "Log skipped order", "type": "main", "index": 0 }]] },
+    "Normalize order": { "main": [[{ "node": "Lookup customer", "type": "main", "index": 0 }]] },
+    "Lookup customer": { "main": [[{ "node": "Insert order row", "type": "main", "index": 0 }]] },
+    "Insert order row": { "main": [[{ "node": "Format receipt", "type": "main", "index": 0 }]] },
+    "Format receipt": { "main": [[{ "node": "Notify sales channel", "type": "main", "index": 0 }]] },
+    "Notify sales channel": { "main": [[{ "node": "Count batch", "type": "main", "index": 0 }]] },
+    "Count batch": { "main": [[{ "node": "Update heartbeat", "type": "main", "index": 0 }]] }
+  }
+}

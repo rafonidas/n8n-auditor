@@ -1,0 +1,29 @@
+{
+  "name": "Warehouse ETL",
+  "id": "wf-eval-07",
+  "active": true,
+  "settings": { "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    { "id": "n01", "name": "Every 15 minutes", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0], "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } } },
+    { "id": "n02", "name": "Read source events", "type": "n8n-nodes-base.mySql", "typeVersion": 2.4, "position": [200, 0], "parameters": { "operation": "executeQuery", "query": "SELECT id, event_type, payload, created_at FROM events WHERE processed = 0 LIMIT 1000" }, "credentials": { "mySql": { "id": "cred-mysql-1", "name": "Source ERP" } } },
+    { "id": "n03", "name": "Any events", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [400, 0], "parameters": { "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $input.all().length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }] } } },
+    { "id": "n04", "name": "Parse payloads", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [600, -100], "parameters": { "jsCode": "return $input.all().map(i => ({ json: { ...i.json, payload: JSON.parse(i.json.payload) } }));" } },
+    { "id": "n05", "name": "Filter test events", "type": "n8n-nodes-base.filter", "typeVersion": 2.2, "position": [800, -100], "parameters": { "conditions": { "conditions": [{ "id": "c2", "leftValue": "={{ $json.payload.env }}", "rightValue": "test", "operator": { "type": "string", "operation": "notEquals" } }] } } },
+    { "id": "n06", "name": "Load into warehouse", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1000, -100], "parameters": { "operation": "executeQuery", "query": "INSERT INTO wh_events (source_id, event_type, payload, created_at) VALUES ($1, $2, $3, $4)", "options": { "queryReplacement": "={{ $json.id }},{{ $json.event_type }},{{ JSON.stringify($json.payload) }},{{ $json.created_at }}" } }, "credentials": { "postgres": { "id": "cred-wh-1", "name": "Warehouse admin" } } },
+    { "id": "n07", "name": "Mark processed", "type": "n8n-nodes-base.mySql", "typeVersion": 2.4, "position": [1200, -100], "parameters": { "operation": "executeQuery", "query": "UPDATE events SET processed = 1 WHERE id IN (SELECT id FROM events WHERE processed = 0 LIMIT 1000)" }, "credentials": { "mySql": { "id": "cred-mysql-1", "name": "Source ERP" } } },
+    { "id": "n08", "name": "Push stats", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1400, -100], "parameters": { "url": "http://10.0.44.7:9091/metrics/job/warehouse_etl", "method": "POST" } },
+    { "id": "n09", "name": "Nothing to do", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [600, 150], "parameters": {} },
+    { "id": "n10", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Moves unprocessed ERP events into the warehouse every 15 minutes, then marks them processed." } },
+    { "id": "n11", "name": "Dead letter set", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [800, 100], "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "dead_letter", "type": "boolean", "value": true }] } } },
+    { "id": "n12", "name": "Alert channel", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [1000, 100], "parameters": { "operation": "post", "text": "ETL dead letter hit" }, "credentials": { "slackApi": { "id": "cred-slack-1", "name": "Team Slack Bot" } } }
+  ],
+  "connections": {
+    "Every 15 minutes": { "main": [[{ "node": "Read source events", "type": "main", "index": 0 }]] },
+    "Read source events": { "main": [[{ "node": "Any events", "type": "main", "index": 0 }]] },
+    "Any events": { "main": [[{ "node": "Parse payloads", "type": "main", "index": 0 }], [{ "node": "Nothing to do", "type": "main", "index": 0 }]] },
+    "Parse payloads": { "main": [[{ "node": "Filter test events", "type": "main", "index": 0 }]] },
+    "Filter test events": { "main": [[{ "node": "Load into warehouse", "type": "main", "index": 0 }]] },
+    "Load into warehouse": { "main": [[{ "node": "Mark processed", "type": "main", "index": 0 }]] },
+    "Mark processed": { "main": [[{ "node": "Push stats", "type": "main", "index": 0 }]] }
+  }
+}

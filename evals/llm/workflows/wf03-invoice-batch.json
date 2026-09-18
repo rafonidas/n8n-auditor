@@ -1,0 +1,37 @@
+{
+  "name": "Invoice batch orchestrator",
+  "id": "wf-eval-03",
+  "active": true,
+  "settings": { "timezone": "America/Argentina/Buenos_Aires" },
+  "nodes": [
+    { "id": "n01", "name": "First of month", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0], "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 6 1 * *" }] } } },
+    { "id": "n02", "name": "Fetch active accounts", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [200, 0], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "SELECT id, plan, billing_email FROM accounts WHERE status = 'active'" }, "credentials": { "postgres": { "id": "cred-db-4", "name": "Billing DB" } } },
+    { "id": "n03", "name": "Split accounts", "type": "n8n-nodes-base.splitInBatches", "typeVersion": 3, "position": [400, 0], "parameters": { "batchSize": 50 } },
+    { "id": "n04", "name": "Compute usage", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [600, 0], "parameters": { "jsCode": "return $input.all().map(i => ({ json: { ...i.json, usage_units: Math.round(Math.random() * 0) + (i.json.cached_units ?? 0) } }));" } },
+    { "id": "n05", "name": "Run pricing subflow", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.2, "position": [800, 0], "parameters": { "workflowId": { "__rl": true, "value": "wf-pricing-v2", "mode": "list" } } },
+    { "id": "n06", "name": "Is enterprise", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [1000, 0], "parameters": { "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $json.plan }}", "rightValue": "enterprise", "operator": { "type": "string", "operation": "equals" } }] } } },
+    { "id": "n07", "name": "Run enterprise addenda", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.2, "position": [1200, -100], "parameters": { "workflowId": { "__rl": true, "value": "", "mode": "list" } } },
+    { "id": "n08", "name": "Render invoice PDF", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1200, 100], "retryOnFail": true, "parameters": { "url": "https://pdf.fakevendor.io/api/render", "method": "POST" } },
+    { "id": "n09", "name": "Store invoice", "type": "n8n-nodes-base.postgres", "typeVersion": 2.5, "position": [1400, 100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "INSERT INTO invoices (account_id, period, amount) VALUES ($1, $2, $3) ON CONFLICT (account_id, period) DO NOTHING", "options": { "queryReplacement": "={{ $json.id }},{{ $json.period }},{{ $json.amount }}" } }, "credentials": { "postgres": { "id": "cred-db-4", "name": "Billing DB" } } },
+    { "id": "n10", "name": "Mail invoice", "type": "n8n-nodes-base.emailSend", "typeVersion": 2.1, "position": [1600, 100], "retryOnFail": true, "parameters": { "subject": "=Your {{ $json.period }} invoice", "toEmail": "={{ $json.billing_email }}" }, "credentials": { "smtp": { "id": "cred-smtp-1", "name": "Notifications SMTP" } } },
+    { "id": "n11", "name": "Collect batch results", "type": "n8n-nodes-base.merge", "typeVersion": 3, "position": [1800, 0], "parameters": {} },
+    { "id": "n12", "name": "Loop next batch", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [2000, 0], "parameters": {} },
+    { "id": "n13", "name": "Summary to finance", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [2200, 0], "parameters": { "operation": "post", "text": "=Billing run finished: {{ $json.count }} invoices" }, "credentials": { "slackApi": { "id": "cred-slack-1", "name": "Team Slack Bot" } } },
+    { "id": "n14", "name": "TODO note", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [1200, -300], "parameters": { "content": "TODO: Run enterprise addenda still points nowhere, waiting for the addenda flow to be migrated. FIXME before next quarter close." } },
+    { "id": "n15", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Monthly billing orchestrator: computes usage, prices accounts via subflow, renders and mails invoices." } }
+  ],
+  "connections": {
+    "First of month": { "main": [[{ "node": "Fetch active accounts", "type": "main", "index": 0 }]] },
+    "Fetch active accounts": { "main": [[{ "node": "Split accounts", "type": "main", "index": 0 }]] },
+    "Split accounts": { "main": [[{ "node": "Summary to finance", "type": "main", "index": 0 }], [{ "node": "Compute usage", "type": "main", "index": 0 }]] },
+    "Compute usage": { "main": [[{ "node": "Run pricing subflow", "type": "main", "index": 0 }]] },
+    "Run pricing subflow": { "main": [[{ "node": "Is enterprise", "type": "main", "index": 0 }]] },
+    "Is enterprise": { "main": [[{ "node": "Run enterprise addenda", "type": "main", "index": 0 }], [{ "node": "Render invoice PDF", "type": "main", "index": 0 }]] },
+    "Run enterprise addenda": { "main": [[{ "node": "Render invoice PDF", "type": "main", "index": 0 }]] },
+    "Render invoice PDF": { "main": [[{ "node": "Store invoice", "type": "main", "index": 0 }]] },
+    "Store invoice": { "main": [[{ "node": "Mail invoice", "type": "main", "index": 0 }]] },
+    "Mail invoice": { "main": [[{ "node": "Collect batch results", "type": "main", "index": 0 }]] },
+    "Collect batch results": { "main": [[{ "node": "Loop next batch", "type": "main", "index": 0 }]] },
+    "Loop next batch": { "main": [[{ "node": "Split accounts", "type": "main", "index": 0 }]] }
+  }
+}

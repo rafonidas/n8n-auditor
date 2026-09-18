@@ -1,0 +1,34 @@
+{
+  "name": "Partner data proxy",
+  "id": "wf-eval-05",
+  "active": true,
+  "settings": { "errorWorkflow": "wf-err-central" },
+  "nodes": [
+    { "id": "n01", "name": "Partner request in", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0], "parameters": { "path": "partner-data", "httpMethod": "POST", "authentication": "headerAuth" } },
+    { "id": "n02", "name": "Check partner id", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [200, 0], "parameters": { "conditions": { "conditions": [{ "id": "c1", "leftValue": "={{ $json.body.partner_id }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }] } } },
+    { "id": "n03", "name": "Query partner rows", "type": "n8n-nodes-base.microsoftSql", "typeVersion": 1.1, "position": [400, -100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "=SELECT TOP 500 * FROM partner_data WHERE partner_code = '{{ $json.body.partner_id }}' AND period = '{{ $json.body.period }}'" }, "credentials": { "microsoftSql": { "id": "cred-mssql-1", "name": "Legacy ERP DB" } } },
+    { "id": "n04", "name": "Redact internal cols", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [600, -100], "parameters": { "jsCode": "return $input.all().map(i => { const { internal_margin, ...pub } = i.json; return { json: pub }; });" } },
+    { "id": "n05", "name": "Push to partner API", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [800, -100], "retryOnFail": true, "parameters": { "url": "={{ $json.callback_url || 'https://partner.fakevendor.io/api/ingest' }}", "method": "POST", "options": { "allowUnauthorizedCerts": true } } },
+    { "id": "n06", "name": "Store delivery receipt", "type": "n8n-nodes-base.microsoftSql", "typeVersion": 1.1, "position": [1000, -100], "retryOnFail": true, "parameters": { "operation": "executeQuery", "query": "INSERT INTO delivery_log (partner_code, period, delivered_at) VALUES (@0, @1, GETDATE())" }, "credentials": { "microsoftSql": { "id": "cred-mssql-1", "name": "Legacy ERP DB" } } },
+    { "id": "n07", "name": "Reply delivered", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [1200, -100], "parameters": { "respondWith": "json", "responseBody": "={\"status\":\"delivered\"}" } },
+    { "id": "n08", "name": "Reply bad request", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [400, 150], "parameters": { "options": { "responseCode": 400 }, "respondWith": "json", "responseBody": "={\"status\":\"missing partner_id\"}" } },
+    { "id": "n09", "name": "Notify data team", "type": "n8n-nodes-base.slack", "typeVersion": 2.2, "position": [1400, -100], "parameters": { "operation": "post", "text": "=Delivered {{ $json.rows }} rows to partner" }, "credentials": { "slackApi": { "id": "cred-slack-1", "name": "Team Slack Bot" } } },
+    { "id": "n10", "name": "Count rows", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [700, -250], "parameters": { "jsCode": "return [{ json: { rows: $input.all().length } }];" } },
+    { "id": "n11", "name": "About this flow", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [0, 300], "parameters": { "content": "Proxy: partners request their period data, we read the ERP, redact internals and push to their API." } },
+    { "id": "n12", "name": "Legacy direct export", "type": "n8n-nodes-base.ftp", "typeVersion": 1, "position": [800, 100], "disabled": true, "parameters": { "operation": "upload" } },
+    { "id": "n13", "name": "Audit copy", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1000, 100], "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "audited", "type": "boolean", "value": true }] } } },
+    { "id": "n14", "name": "Merge receipt", "type": "n8n-nodes-base.merge", "typeVersion": 3, "position": [1100, 0], "parameters": {} }
+  ],
+  "connections": {
+    "Partner request in": { "main": [[{ "node": "Check partner id", "type": "main", "index": 0 }]] },
+    "Check partner id": { "main": [[{ "node": "Query partner rows", "type": "main", "index": 0 }], [{ "node": "Reply bad request", "type": "main", "index": 0 }]] },
+    "Query partner rows": { "main": [[{ "node": "Redact internal cols", "type": "main", "index": 0 }]] },
+    "Redact internal cols": { "main": [[{ "node": "Push to partner API", "type": "main", "index": 0 }], [{ "node": "Count rows", "type": "main", "index": 0 }]] },
+    "Push to partner API": { "main": [[{ "node": "Store delivery receipt", "type": "main", "index": 0 }]] },
+    "Store delivery receipt": { "main": [[{ "node": "Audit copy", "type": "main", "index": 0 }]] },
+    "Audit copy": { "main": [[{ "node": "Merge receipt", "type": "main", "index": 0 }]] },
+    "Merge receipt": { "main": [[{ "node": "Reply delivered", "type": "main", "index": 0 }]] },
+    "Reply delivered": { "main": [[{ "node": "Notify data team", "type": "main", "index": 0 }]] },
+    "Count rows": { "main": [[{ "node": "Merge receipt", "type": "main", "index": 1 }]] }
+  }
+}
