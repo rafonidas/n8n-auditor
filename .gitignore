@@ -9,3 +9,4 @@ build/
 dist/
 .llm_cache/
 reports/
+notes.local.md

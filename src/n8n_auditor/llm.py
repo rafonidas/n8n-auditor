@@ -18,11 +18,16 @@ from .model import Finding, Workflow
 
 CACHE_DIR = Path(".llm_cache")
 FALLBACK_MODEL = "gemini-2.5-flash"
-MODEL_PREFERENCE = ["gemini-2.5-pro", "gemini-2.5-flash"]
+# gemini-2.5-pro is intentionally NOT first choice: client.models.list() still lists it,
+# but it 404s ("no longer available to new users") on real accounts created after its
+# cutoff. Verified against a live key on 2026-09-18 — see the 404 self-heal in _call below
+# for accounts where an even newer preference silently goes dead the same way.
+MODEL_PREFERENCE = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
 # USD per 1M tokens (input, output). Free tier bills $0; this estimates paid-tier cost.
+# Only models with a confirmed published price are listed; unlisted models report $0 cost
+# (see estimated_cost) rather than guess a figure.
 PRICING = {
-    "gemini-2.5-pro": (1.25, 10.0),
     "gemini-2.5-flash": (0.30, 2.50),
 }
 
@@ -224,10 +229,18 @@ class LLMReviewer:
                 )
             except errors.APIError as e:
                 last_error = e
+                code = getattr(e, "code", None)
+                if code == 404 and self.model != FALLBACK_MODEL:
+                    # models.list() can keep listing a model the account can no longer call
+                    # (seen live with gemini-2.5-pro, deprecated for new users but still
+                    # advertised). Downgrade once for the rest of this run and retry now,
+                    # instead of burning the call budget on a model that will never answer.
+                    self.model = FALLBACK_MODEL
+                    continue
                 attempts_on_client += 1
-                is_rate_limited = getattr(e, "code", None) == 429 or isinstance(e, errors.ServerError)
+                is_rate_limited = code == 429 or isinstance(e, errors.ServerError)
                 if not is_rate_limited:
-                    raise LLMError(f"Gemini API error {getattr(e, 'code', '?')}: {e}") from e
+                    raise LLMError(f"Gemini API error {code}: {e}") from e
                 if attempts_on_client < MAX_RETRIES:
                     time.sleep(delay)
                     delay *= 2
